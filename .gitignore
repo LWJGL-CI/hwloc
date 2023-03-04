@@ -10,6 +10,8 @@ test-suite.log
 *.log
 *.trs
 
+/build
+
 /auto.out
 /config.out
 /dist.out
