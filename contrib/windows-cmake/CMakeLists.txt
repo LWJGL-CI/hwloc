@@ -5,6 +5,8 @@ project(hwloc
 
 enable_testing()
 
+option(LWJGL_HAS_X86 "LWJGL flag to skip x86 stuff on ARM build" ON)
+
 option(HWLOC_ENABLE_TESTING "Enable testing" ON)
 option(HWLOC_SKIP_LSTOPO "don't build/install lstopo")
 option(HWLOC_SKIP_TOOLS "don't build/install other hwloc tools")
@@ -50,10 +52,10 @@ set(SIZEOF_VOID_P ${CMAKE_SIZEOF_VOID_P})
 set(HWLOC_X86_32_ARCH)
 set(HWLOC_X86_64_ARCH)
 set(HWLOC_HAVE_X86_CPUID 1)
-if (CMAKE_SYSTEM_PROCESSOR MATCHES "(^AMD64$|^x86_64$)")
+if (LWJGL_HAS_X86 AND CMAKE_SYSTEM_PROCESSOR MATCHES "(^AMD64$|^x86_64$)")
     # "AMD64" on Windows, "x86_64" on Linux
     set(HWLOC_X86_64_ARCH 1)
-elseif (CMAKE_SYSTEM_PROCESSOR MATCHES "(^x86$|i.86)")
+elseif (LWJGL_HAS_X86 AND CMAKE_SYSTEM_PROCESSOR MATCHES "(^x86$|i.86)")
     # "x86" on Windows, "i.86" on Linux
     set(HWLOC_X86_32_ARCH 1)
 else()
@@ -122,7 +124,7 @@ add_library(hwloc
     ${TOPDIR}/hwloc/topology-xml.c
     ${TOPDIR}/hwloc/topology-xml-nolibxml.c
     ${TOPDIR}/hwloc/topology-windows.c
-    ${TOPDIR}/hwloc/topology-x86.c
+    $<$<BOOL:${HWLOC_HAVE_X86_CPUID}>:${TOPDIR}/hwloc/topology-x86.c>
     $<$<BOOL:${HWLOC_HAVE_LIBXML2}>:${TOPDIR}/hwloc/topology-xml-libxml.c>
     $<$<BOOL:${HWLOC_HAVE_OPENCL}>:${TOPDIR}/hwloc/topology-opencl.c>
     $<$<BOOL:${HAVE_CUDA}>:${TOPDIR}/hwloc/topology-cuda.c>
