@@ -69,15 +69,16 @@ jobs:
     name: Linux Cross
     runs-on: ubuntu-latest
     container:
-      image: ubuntu:18.04
+      image: ${{matrix.CONTAINER}}
     strategy:
       fail-fast: false
       matrix:
-        ARCH: [arm32, arm64]
+        ARCH: [arm32, arm64, riscv64]
         include:
           # -----
           - ARCH: arm32
             CROSS_ARCH: armhf
+            CONTAINER: ubuntu:18.04
             PACKAGES: gcc-arm-linux-gnueabihf libc6-dev-armhf-cross
             CC: PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${CMAKE_SYSROOT}/usr/lib/arm-linux-gnueabihf/pkgconfig CC=arm-linux-gnueabihf-gcc
             HOST: arm-unknown-linux-gnueabihf
@@ -85,10 +86,19 @@ jobs:
           # -----
           - ARCH: arm64
             CROSS_ARCH: arm64
+            CONTAINER: ubuntu:18.04
             PACKAGES: gcc-aarch64-linux-gnu libc6-dev-arm64-cross
             CC: PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${CMAKE_SYSROOT}/usr/lib/aarch64-linux-gnu/pkgconfig CC=aarch64-linux-gnu-gcc
             HOST: aarch64-unknown-linux-gnu
             STRIP: aarch64-linux-gnu-strip
+          # -----
+          - ARCH: riscv64
+            CROSS_ARCH: riscv64
+            CONTAINER: ubuntu:20.04
+            PACKAGES: gcc-riscv64-linux-gnu libc6-dev-riscv64-cross
+            CC: PKG_CONFIG_PATH=${PKG_CONFIG_PATH}:${CMAKE_SYSROOT}/usr/lib/riscv64-linux-gnu/pkgconfig CC=riscv64-linux-gnu-gcc
+            HOST: riscv64-unknown-linux-gnu
+            STRIP: riscv64-linux-gnu-strip
     env:
       LWJGL_ARCH: ${{matrix.ARCH}}
     steps:
@@ -102,6 +112,9 @@ jobs:
           apt-key add kitware-archive-latest.asc
           add-apt-repository -y 'deb https://apt.kitware.com/ubuntu/ bionic main'
           add-apt-repository -y ppa:git-core/ppa
+        name: Update apt repositories
+        if: ${{ matrix.CONTAINER == 'ubuntu:18.04' }}
+      - run: |
           apt-get -y update
           DEBIAN_FRONTEND=noninteractive apt-get -yq install awscli git
         name: Upgrade git
@@ -113,7 +126,7 @@ jobs:
       - run: |
           sed -i 's/deb http/deb [arch=amd64,i386] http/' /etc/apt/sources.list
           grep "ubuntu.com/ubuntu" /etc/apt/sources.list | tee /etc/apt/sources.list.d/ports.list
-          sed -i 's/amd64,i386/armhf,arm64/' /etc/apt/sources.list.d/ports.list
+          sed -i 's/amd64,i386/${{matrix.CROSS_ARCH}}/' /etc/apt/sources.list.d/ports.list
           sed -i 's#http://.*/ubuntu#http://ports.ubuntu.com/ubuntu-ports#' /etc/apt/sources.list.d/ports.list
           dpkg --add-architecture ${{matrix.CROSS_ARCH}}
           apt-get update
